@@ -1,0 +1,6 @@
+Start
+Exp: x' = 12 + y  + 15, y' = 2*x + 7 ;
+Vars0: y = 0.2, x = 20 ;
+Step: 0.05;
+Range: 2.0;
+Stop
