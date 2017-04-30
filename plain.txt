@@ -1,6 +1,11 @@
-Start
-Exp: x' = 12 + y  + 15, y' = 2*x + 7 ;
-Vars0: y = 0.2, x = 20 ;
-Step: 0.05;
+Bvcbegin
+Exp:
+dx = b*y - a * x*c,
+dy = x + y+z,
+dz=b*z-a*y;
+Vars0 y = 1, x = 1, z=0.5;
+Coeff: a = 5,b=3,c=5;
+Step: [0,0.05];
 Range: 2.0;
-Stop
+Method: euler
+End

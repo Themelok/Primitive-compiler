@@ -5,35 +5,68 @@ POINT = Literal('.')
 COMMA = Literal(',').suppress()
 COLON = Word(':', max=1).suppress()
 EQUAL = Literal('=').suppress()
-VARNAME = Word(alphas, max=1)
+VARNAME = Word(alphas, max=10)
 NATNUM = Word(nums)  # 1234567890
 SIGN = oneOf('+ -')
 OPER = oneOf('+ - * / ^ ')
 REALNUM = Combine(Optional(SIGN) + NATNUM + Optional(POINT + NATNUM))  # Real Numbers 2.3, 4.5
 STEP = Dict(Group('Step' + COLON + REALNUM + END))  # Step: 0.01 ;
 RANGE = Dict(Group('Range' + COLON + REALNUM + END))  # Range: 2.0 ;
-VARINIT = Dict(Group(VARNAME + Suppress('=') + REALNUM))  # x=32.31
-ZEROVAR = Dict(Group('Vars0' + COLON + VARINIT + Optional(COMMA + VARINIT) + END))
+VARINIT = Dict(Group(VARNAME + EQUAL + REALNUM))  # x=32.31
+ZEROVAR = Dict(Group('Vars0' + COLON + VARINIT + Optional(OneOrMore(COMMA + VARINIT)) + END))
+COEFF = Dict(Group('Coeff' + COLON + VARINIT + Optional(OneOrMore(COMMA + VARINIT)) + END))
 EXPESS = Forward()
 EXPESS << Combine((REALNUM | VARNAME) + ZeroOrMore(OPER + EXPESS), adjacent=False)
-IDENT = Combine(VARNAME + "'")
-FUNC = Dict(Group(IDENT + EQUAL + EXPESS))
+IDENT = Combine('d'+VARNAME)
+FUNC = Group(IDENT + EQUAL + EXPESS)
 DIFUR = Dict(Group('Exp' + COLON + FUNC + ZeroOrMore(COMMA + FUNC) + END))
-STATE = Suppress("Start") + DIFUR + ZEROVAR + STEP + RANGE + Suppress("Stop")
-
-# result = dict(STATE.parseString(
-#                                 """
-#                                 Start
-#                                 Exp: x' = 12 + y  + 15, y' = 2*x + 7 ;
-#                                 Vars0: y = 0.2, x = 20 ;
-#                                 Step: 0.05;
-#                                 Range: 2.0;
-#                                 Stop
-#                                 """
-# ))
+STATE = Suppress("Start") + DIFUR + ZEROVAR + COEFF + STEP + RANGE + Suppress("Stop")
+#
+result = dict(DIFUR.parseString('Exp: dx = a*x-y, dy = b * x -y, dz=800-2*4*x+z ;'))
+# fin={}
+# for v in result.values():
+#     for k in v:
+#         fin.update({k[0]:k[1]})
+#         print(fin)
+# result['Exp']={k[0]:k[1] for v in result.values() for k in v}
+# print(result)
+# # ))
 filename = 'plain.txt'
 FIN = open(filename)
 
-result = dict(STATE.parseFile(FIN))
-result = dict(result)
-print(result)
+try:
+    result = dict(STATE.parseFile(FIN))
+
+    for v in result['Exp']:
+        for coef in result['Coeff']:
+            v[1] = v[1].replace(coef[0],coef[1])
+    result.pop('Coeff')
+    result['Exp'] = {k[0]: k[1] for k in result['Exp']}
+    result['Vars0'] = {k[0]: k[1] for k in result['Vars0']}
+    if len(result['Exp']) != len(result['Vars0']):
+        raise ParseExpression("Количество начальных условий не соответсвует количеству уравнений")
+    if len({k for v in list(result['Exp'].values()) for k in v if k.isalpha()}) != len(result['Vars0']):
+        raise ParseExpression('Не соответсвует количество коэффициентов')
+#     # for v in result['Vars0']:
+#     #     result['Vars0'][v[0]]="".join(v[1])
+#     #     result['Vars0'].pop()
+#             # pr?int(v[1])
+#     # print(result['Coeff'])
+
+except ParseException as pe:
+    print(str(pe).replace('Expected', 'Ожидался'))
+    print('Строка: '+ str(pe.lineno))
+    print('Символ: '+ str(pe.col))
+
+
+#
+# fin = {}
+# # print(result.keys())
+# for v in result['Exp']:
+#     # for k in v:
+#     fin.update({v[0]:v[1]})
+# print(fin)
+# result['Exp']={k[0]:k[1] for k in result['Exp']}
+# print(result)
+# print(len(result['Vars0']))
+# print({k for v in list(result['Exp'].values()) for k in v if k.isalpha()})

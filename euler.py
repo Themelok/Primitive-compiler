@@ -3,20 +3,20 @@ import matplotlib.pyplot as plt
 from pars import result
 
 a = 0.0
-b = 2.0
-h = 0.05
+b = eval(result['Range'])
+h = eval(result['Step'])
 N = (b - a) / h
-y0 = 0.5
-x0 = 0.2
-
+# y0 = 0.5
+# x0 = 0.2
+list(map(exec, ("{0}={1}".format(x[0],x[1]) for x in dict(result['Vars0']).items())))
 
 # ordinary differential equation
 def fy(x, y):
-    return (4.0 * x) - y
+    return eval(result['Exp']['dy'])
 
 
 def fx(x, y):
-    return (3.0 * x) - y
+    return eval(result['Exp']['dx'])
 
 
 def euler(f1x, f2y, ran, step, x0, y0):
@@ -30,12 +30,22 @@ def euler(f1x, f2y, ran, step, x0, y0):
         ys[i] = round(ys[i - 1] + f2y(xs[i - 1], ys[i - 1]) * step, 2)
     res = {'x': xs, 'y': ys, 't': ts}
     print(res)
+
     plt.figure()
-    plt.plot(res['x'], res['y'], color='blue')
+    plt.plot(res['t'], res['y'], color='red')
+    plt.plot(res['t'], res['x'], color='blue')
+    plt.xlabel('t')
+    plt.ylabel('y(t), x(t)')
+    plt.show()
+
+    plt.plot(res['x'], res['y'], color='green')
     plt.xlabel('x(t)')
     plt.ylabel('y(t)')
     plt.show()
 
 
+
+
+
 if __name__ == "__main__":
-    print(euler(fx, fy, b, h, x0, y0))
+    print(euler(fx, fy, b, h, x, y))
