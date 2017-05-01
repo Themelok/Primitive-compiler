@@ -30,13 +30,13 @@ class Lexer:
 
     def lex_num(self):
         num = ""
-        while self.ch not in TKS.SYMBOLS and self.ch not in TKS.BRACKETS:
+        while self.ch not in [l for k in [TKS.SYMBOLS, TKS.BRACKETS, TKS.MATHOP, TKS.PARANTH] for l in k]:
             if self.ch.isdigit() or self.ch in TKS.DELIMETORS:
                 num += self.ch
                 self.getc()
                 if num.count('.') > 1:
                     self.error(ERR.LEX_ERRORS[2].format(num))
-            elif self.ch =="\n":
+            elif self.ch == "\n":
                 self.error(ERR.LEX_ERRORS[3].format(num))
             else:
                 self.error(ERR.LEX_ERRORS[1].format(self.ch))
@@ -57,6 +57,14 @@ class Lexer:
             #     self.getc()
             elif self.ch.isspace():
                 self.getc()
+            elif self.ch in TKS.MATHOP:
+                self.sym = TKS.MATHOP[self.ch]
+                self.value = self.ch
+                self.getc()
+            elif self.ch in TKS.PARANTH:
+                self.sym = TKS.PARANTH[self.ch]
+                self.value = self.ch
+                self.getc()
             elif self.ch in TKS.BRACKETS:
                 self.sym = TKS.BRACKETS[self.ch]
                 self.value = self.ch
@@ -73,15 +81,21 @@ class Lexer:
                 while self.ch.isalpha() or self.ch.isdigit():
                     word += self.ch
                     self.getc()
-                if word in TKS.WORDS:
-                    self.sym = TKS.WORDS[word]
-                    self.value = word
-                elif word in TKS.METHODS:
-                    self.sym = TKS.METHODS[word]
-                    self.value = word
-                else:
-                    self.sym = TKS.VAR
-                    self.value = word
+                    if word in TKS.WORDS:
+                        self.sym = TKS.WORDS[word]
+                        self.value = word
+                        break
+                    elif word in TKS.MATHFUNC:
+                        self.sym = TKS.MATHFUNC[word]
+                        self.value = word
+                        break
+                    elif word in TKS.METHODS:
+                        self.sym = TKS.METHODS[word]
+                        self.value = word
+                        break
+                    else:
+                        self.sym = TKS.VAR
+                        self.value = word
             else:
                 self.error(ERR.LEX_ERRORS[0].format(self.ch))
 
@@ -129,12 +143,12 @@ class Parser:
         if token != TKS.SEMICOLON:
             self.error('Пропущен символ конца строки ";", в позиции ')
 
-    def check_equ(self):
+    def check_equ(self, varname, oper):
         self.lexer.next_token()
         if self.lexer.sym == TKS.EQUAL:
             pass
         else:
-            self.error('Пропущен символ равенства. ')
+            self.error(ERR.PARS_ERRORS['Equal'].format(varname, oper))
 
     def check_varname(self):
         self.lexer.next_token()
@@ -158,47 +172,139 @@ class Parser:
         self.lexer.next_token()
         token = self.lexer.sym
         if token != TKS.COLON:
-            self.error('Пропущен символ присваивания ":" оператора {}. '.format(operator))
+            self.error('Пропущен символ присваивания ":" оператора "{}". '.format(operator))
+
+    def rpar_chek(self, key):
+        value = ""
+        while self.lexer.sym != TKS.RPAR:
+            # self.parse_expression(key)
+            # self.lexer.next_token()
+            value += self.parse_expression(key)
+            if self.lexer.sym == TKS.COMMA or self.lexer.sym == TKS.SEMICOLON:
+                self.error('Пропущенна закрывающая скобка при определении "{}". '.format(key))
+        return value
+
+    def parse_expression(self, key):
+        value = ""
+        if self.lexer.ch in TKS.MATHOP: self.error(ERR.PARS_ERRORS['Expr'][2].format(key, self.lexer.ch))
+        while self.lexer.ch not in ',;':
+
+            self.lexer.next_token()
+            if self.lexer.sym == TKS.NUM:
+                value += self.lexer.value
+            elif self.lexer.sym == TKS.VAR:
+                value += self.lexer.value
+            elif self.lexer.sym == TKS.RPAR:
+                value += self.lexer.value
+            elif self.lexer.sym == TKS.LPAR:
+                value += self.lexer.value + self.rpar_chek(key)
+            elif self.lexer.value in TKS.MATHFUNC:
+                if self.lexer.ch != '(':
+                    self.error(ERR.PARS_ERRORS['Expr'][3].format(key, self.lexer.value))
+                else:
+                    value += self.lexer.value + self.rpar_chek(key)
+            elif self.lexer.value in TKS.MATHOP:
+                if self.lexer.ch in TKS.MATHOP:
+                    self.error('Два знака математических операци подряд')
+                else:
+                    value += self.lexer.value
+            else:
+                self.error(ERR.PARS_ERRORS['Expr'][5].format(self.lexer.value, key))
+
+        if value[-1] in TKS.MATHOP:
+            self.error(ERR.PARS_ERRORS['Expr'][4].format(key, value[-1]))
+        return value
+
+    def check_diffname(self):
+        self.lexer.next_token()
+        if not self.lexer.value.startswith('d'):
+            self.error(ERR.PARS_ERRORS['Expr'][1].format(self.lexer.value[0]))
+        else:
+            return self.lexer.value
+
+    def parse_expressions(self):
+        self.lexer.next_token()
+        op = self.lexer.value
+        if self.lexer.sym != TKS.EXPR:
+            self.error(ERR.PARS_ERRORS['Expr'][0])
+        self.colon_check(op)
+        expr_dict = {}
+        while self.lexer.ch != ';':
+            k = self.check_diffname()
+            self.check_equ(k, op)
+
+            v = self.parse_expression(k)
+            if v.count('(') > v.count(')'): self.error(
+                'Ошибка в определении "{}". "(" больше чем ")" '.format(k))
+            elif v.count('(') < v.count(')'): self.error(
+                'Ошибка в определении "{}". "(" меньше чем ")" '.format(k))
+
+            expr_dict[k] = v
+            if self.lexer.ch == ',':
+                self.lexer.next_token()
+            else:
+                break
+        self.eol_chek()
+        self.node.add_too_tree('Expr', expr_dict)
 
     def parse_vars0(self):
+        """
+        Parsing Vars0 statement, looks like Vars0: y = 1, x = 1, z=0.5;
+        or <НАЧЗНАЧ> = <ИНИЦПЕРЕМ> ["," {/ИНИЦПЕРЕМ/}] ";" on EBNF notation
+        Full EBNF look in ebnf.txt
+        :return: Finally make add_too_tree method
+        """
         self.lexer.next_token()
         op = self.lexer.value
         if self.lexer.sym != TKS.VARS0:
             self.error(ERR.PARS_ERRORS['Vars0'][0])
         self.colon_check(op)
-        vars_dict={}
+        vars_dict = {}
         while self.lexer.ch != ';':
             k = self.check_varname()
-            self.check_equ()
+            self.check_equ(k, op)
             v = self.check_num()
             vars_dict[k] = v
             if self.lexer.ch == ',':
                 self.lexer.next_token()
-            else: break
+            else:
+                break
 
         self.eol_chek()
         self.node.add_too_tree('Vars0', vars_dict)
 
     def parse_coeff(self):
+        """
+        Parsing Coeff statement, looks like Coeff: asad = 2.0, b=56, c=8.098;;
+         or <КОЭФ> = <ИНИЦПЕРЕМ> ["," {/ИНИЦПЕРЕМ/}] ";" on EBNF notation
+         Full EBNF look in ebnf.txt
+        :return: Finally make add_too_tree method
+        """
         self.lexer.next_token()
         op = self.lexer.value
         if self.lexer.sym != TKS.COEFF:
             self.error(ERR.PARS_ERRORS['COEFF'][0])
         self.colon_check(op)
-        coeff_dict={}
+        coeff_dict = {}
         while self.lexer.ch != ';':
             k = self.check_varname()
-            self.check_equ()
+            self.check_equ(k, op)
             v = self.check_num()
             coeff_dict[k] = v
             if self.lexer.ch == ',':
                 self.lexer.next_token()
-            else: break
+            else:
+                break
 
         self.eol_chek()
         self.node.add_too_tree('Coeff', coeff_dict)
 
     def parse_step(self):
+        """
+        Parsing STEP statement, look like Step: 0.05;
+         or <ШАГ> = "Step:" <ЧИСЛ> ";" on EBNF notation
+        :return: Finally make add_too_tree method
+        """
         self.lexer.next_token()
         op = self.lexer.value
         token = self.lexer.sym
@@ -214,7 +320,7 @@ class Parser:
     def pars_range(self):
         """
         Parsing Range statment, look like [ NUM , NUM]
-         or <ИНТЕРВАЛ> ::= "Range:" "[" <ЧИСЛ> "," <ЧИСЛ> "]" ";" in EBNF form
+         or <ИНТЕРВАЛ> ::= "Range:" "[" <ЧИСЛ> "," <ЧИСЛ> "]" ";" in EBNF notation
         :return: Finally make add_too_tree method
         """
         self.lexer.next_token()
@@ -268,6 +374,7 @@ class Parser:
                        .format(self.lexer.value))
         self.eol_chek()
 
+        self.parse_expressions()
         self.parse_vars0()
         self.parse_coeff()
         self.parse_step()

@@ -1,6 +1,7 @@
 COMMA, RSB, LSB, NUM, STEP, METHOD, COLON, SEMICOLON, \
-PLUS, MINUS, EOF, DOT, VAR, BEGIN, END, RANGE, LPAR, RPAR,\
-RANGEVAL, EULER, RUNGKUT2, RUNGKUT4, COEFF, EQUAL, VARS0 = range(25)
+PLUS, MINUS, EOF, DOT, VAR, BEGIN, END, RANGE, LPAR, RPAR, \
+RANGEVAL, EULER, RUNGKUT2, RUNGKUT4, COEFF, EQUAL, VARS0, POW, \
+MULT, DIVIS, SIN, COS, TANG, EXPR = range(32)
 
 WORDS = {'Step': STEP,
          'Method': METHOD,
@@ -9,23 +10,35 @@ WORDS = {'Step': STEP,
          'End': END,
          'Coeff': COEFF,
          'Vars0': VARS0,
+         'Expr': EXPR,
          }
 
 SYMBOLS = {';': SEMICOLON,
-           '+': PLUS,
            '=': EQUAL,
-           '-': MINUS,
            ':': COLON,
            ',': COMMA
            }
 
 BRACKETS = {'[': LSB,
             ']': RSB,
-            '(': LPAR,
-            ')': RPAR,
             }
 
-DELIMETORS = {'.':DOT}
+MATHOP = {'/': DIVIS,
+          '+': PLUS,
+          '*': MULT,
+          '-': MINUS,
+          '^': POW,
+          }
+MATHFUNC = {'sin': SIN,
+          'cos': COS,
+          'tg': TANG,
+          }
+
+PARANTH = {'(': LPAR,
+           ')': RPAR,
+           }
+
+DELIMETORS = {'.': DOT}
 
 METHODS = {'Euler': EULER,
            'RungeKutta2': RUNGKUT2,
