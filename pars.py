@@ -1,5 +1,12 @@
 from pyparsing import *
 
+# {'Range': '2.0',
+#  'Coeff': ([(['a', '5'], {}), (['b', '3'], {}), (['c', '5'], {})], {'a': ['5'], 'b': ['3'], 'c': ['5']}),
+#  'Exp': ([(['dx', 'b*y-a*x*c'], {}), (['dy', 'x+y+z'], {}), (['dz', 'b*z-a*y'], {})], {}), 'Step': '0.05',
+#  'Vars0': ([(['y', '1'], {}), (['x', '1'], {}), (['z', '0.5'], {})], {'z': ['0.5'], 'y': ['1'], 'x': ['1']})}
+# {'Range': '2.0', 'Exp': {'dy': 'x+y+z', 'dx': '3*y-5*x*5', 'dz': '3*z-5*y'}, 'Step': '0.05',
+#  'Vars0': {'z': '0.5', 'y': '1', 'x': '1'}}
+
 END = Literal(';').suppress()
 POINT = Literal('.')
 COMMA = Literal(',').suppress()
@@ -22,7 +29,7 @@ FUNC = Group(IDENT + EQUAL + EXPESS)
 DIFUR = Dict(Group('Exp' + COLON + FUNC + ZeroOrMore(COMMA + FUNC) + END))
 STATE = Suppress("Start") + DIFUR + ZEROVAR + COEFF + STEP + RANGE + Suppress("Stop")
 #
-result = dict(DIFUR.parseString('Exp: dx = a*x-y, dy = b * x -y, dz=800-2*4*x+z ;'))
+# result = dict(DIFUR.parseString('Exp: dx = a*x-y, dy = b * x -y, dz=800-2*4*x+z ;'))
 # fin={}
 # for v in result.values():
 #     for k in v:
@@ -36,6 +43,7 @@ FIN = open(filename)
 
 try:
     result = dict(STATE.parseFile(FIN))
+    print(result)
 
     for v in result['Exp']:
         for coef in result['Coeff']:
@@ -51,8 +59,7 @@ try:
 #     #     result['Vars0'][v[0]]="".join(v[1])
 #     #     result['Vars0'].pop()
 #             # pr?int(v[1])
-#     # print(result['Coeff'])
-
+    print(result)
 except ParseException as pe:
     print(str(pe).replace('Expected', 'Ожидался'))
     print('Строка: '+ str(pe.lineno))
@@ -61,7 +68,7 @@ except ParseException as pe:
 
 #
 # fin = {}
-# # print(result.keys())
+# print(result.keys())
 # for v in result['Exp']:
 #     # for k in v:
 #     fin.update({v[0]:v[1]})

@@ -1,34 +1,15 @@
-import string
 import sys
-
-
-# <ШАГ> = "Step:" <ЧИСЛ> ";"
-# <МЕТОД> = "Method:" "Euler"|"RungeKutta2"!|"RungeKutta4" ";"
-# <ИНИЦПЕРЕМ> = <ПЕРЕМ> "=" <ЧИСЛ>
-# <ЧИСЛ> = [<ЗНАК>] {/<НАТЧИС>/}["."{/<НАТЧИС>/}]
-# <ПЕРЕМ> ::= <БУК> {<ЦИФ>|<БУК>}
-# <НАТЧИС> ::= <ЦИФ>{ЦИФ}
-# <ЗНАК> ::= "-" | "+"
-# <БУК> ::= "a"|"b"|..|"z"
-# <ЦИФ> ::= '0'|'1'|...|'9'
+import TOKENS as TKS
+import ERRORS as ERR
 
 
 class Lexer:
     """
     Parsing Char by chr and returning tokens
     """
-    COMMA, RSB, LSB, NUM, STEP, METHOD, COLON, SEMICOLON, PLUS, MINUS, EOF, DOT, VAR, BEGIN, END = range(15)
-    WORDS = {'Step': STEP, 'Method:': METHOD, 'Begin': BEGIN, 'End': END}
-    SYMBOLS = {';': SEMICOLON, '+': PLUS, '-': MINUS, '.': DOT, ':': COLON, '[':LSB, ']':RSB, ',': COMMA}
 
     raw_text_file = open('raw.txt', 'r')
     ch = ' '
-
-    # def __init__(self, str):
-    #     self.str = str
-    # exit_char =
-    # def __init__(self):
-    #     self.next_token()
 
     def error(self, msg):
         char_no = self.raw_text_file.tell()
@@ -36,6 +17,31 @@ class Lexer:
         self.raw_text_file.close()
 
         sys.exit(1)
+
+    def lex_comma(self):
+        """
+        NOT USSING YET. LET IT BE HERE
+        :return:
+        """
+        if self.ch != ',':
+            self.error('Ожидался символ ",", а пришел {}. Cимвол номер '.format(self.ch))
+        else:
+            return ','
+
+    def lex_num(self):
+        num = ""
+        while self.ch not in TKS.SYMBOLS and self.ch not in TKS.BRACKETS:
+            if self.ch.isdigit() or self.ch in TKS.DELIMETORS:
+                num += self.ch
+                self.getc()
+                if num.count('.') > 1:
+                    self.error(ERR.LEX_ERRORS[2].format(num))
+            elif self.ch =="\n":
+                self.error(ERR.LEX_ERRORS[3].format(num))
+            else:
+                self.error(ERR.LEX_ERRORS[1].format(self.ch))
+        if num[-1] == '.': num += '0'
+        return num
 
     def getc(self):
         self.ch = self.raw_text_file.read(1)
@@ -45,34 +51,39 @@ class Lexer:
         self.sym = None
         while self.sym == None:
             if len(self.ch) == 0:
-                self.sym = Lexer.EOF
+                self.sym = TKS.EOF
                 self.raw_text_file.close()
+            # elif not self.ch in '\n\t':
+            #     self.getc()
             elif self.ch.isspace():
                 self.getc()
-            elif self.ch in Lexer.SYMBOLS:
-                self.sym = Lexer.SYMBOLS[self.ch]
+            elif self.ch in TKS.BRACKETS:
+                self.sym = TKS.BRACKETS[self.ch]
+                self.value = self.ch
+                self.getc()
+            elif self.ch in TKS.SYMBOLS:
+                self.sym = TKS.SYMBOLS[self.ch]
+                self.value = self.ch
                 self.getc()
             elif self.ch.isdigit():
-                num = ""
-                while self.ch.isdigit() or self.ch == '.':
-                    num += self.ch
-                    self.getc()
-                    if num.count('.') > 1:
-                        self.error('Очень много точек в вещественном числе {} символ номер '.format(num))
-                self.value = num
-                self.sym = Lexer.NUM
+                self.value = self.lex_num()
+                self.sym = TKS.NUM
             elif self.ch.isalpha():
                 word = ""
                 while self.ch.isalpha() or self.ch.isdigit():
                     word += self.ch
                     self.getc()
-                if word in Lexer.WORDS:
-                    self.sym = Lexer.WORDS[word]
+                if word in TKS.WORDS:
+                    self.sym = TKS.WORDS[word]
+                    self.value = word
+                elif word in TKS.METHODS:
+                    self.sym = TKS.METHODS[word]
+                    self.value = word
                 else:
-                    self.sym = Lexer.VAR
+                    self.sym = TKS.VAR
                     self.value = word
             else:
-                self.error('ХЗ че за символ {} номер'.format(self.ch))
+                self.error(ERR.LEX_ERRORS[0].format(self.ch))
 
 
 # #
@@ -83,6 +94,7 @@ class Node:
     """
     Builing Tree o nodes by Parser object
     """
+
     def __init__(self):
         self.node_tree = {}
 
@@ -104,44 +116,170 @@ class Parser:
     def error(self, msg):
 
         char_no = self.lexer.raw_text_file.tell()
-        print('Parser error: ' + msg + str(char_no))
+        print('Parser error: ' + msg + "Символ номер " + str(char_no))
         sys.exit(1)
 
     def eol_chek(self):
+        """
+        Chek End Of Line symbol ';'
+        :return:
+        """
         self.lexer.next_token()
         token = self.lexer.sym
-        if token != Lexer.SEMICOLON:
+        if token != TKS.SEMICOLON:
             self.error('Пропущен символ конца строки ";", в позиции ')
 
-    def colon_check(self):
+    def check_equ(self):
+        self.lexer.next_token()
+        if self.lexer.sym == TKS.EQUAL:
+            pass
+        else:
+            self.error('Пропущен символ равенства. ')
+
+    def check_varname(self):
+        self.lexer.next_token()
+        if self.lexer.sym == TKS.VAR:
+            return self.lexer.value
+        else:
+            self.error('Ошибка в определении имени переменной. ')
+
+    def check_num(self):
+        self.lexer.next_token()
+        if self.lexer.sym == TKS.NUM:
+            return self.lexer.value
+        else:
+            self.error('Ошибка в определении значения переменной. ')
+
+    def colon_check(self, operator):
+        """
+        Chek COLON
+        :return:
+        """
         self.lexer.next_token()
         token = self.lexer.sym
-        if token != Lexer.COLON:
-            self.error('Пропущен символ присваивания оператора, в позиции ')
+        if token != TKS.COLON:
+            self.error('Пропущен символ присваивания ":" оператора {}. '.format(operator))
+
+    def parse_vars0(self):
+        self.lexer.next_token()
+        op = self.lexer.value
+        if self.lexer.sym != TKS.VARS0:
+            self.error(ERR.PARS_ERRORS['Vars0'][0])
+        self.colon_check(op)
+        vars_dict={}
+        while self.lexer.ch != ';':
+            k = self.check_varname()
+            self.check_equ()
+            v = self.check_num()
+            vars_dict[k] = v
+            if self.lexer.ch == ',':
+                self.lexer.next_token()
+            else: break
+
+        self.eol_chek()
+        self.node.add_too_tree('Vars0', vars_dict)
+
+    def parse_coeff(self):
+        self.lexer.next_token()
+        op = self.lexer.value
+        if self.lexer.sym != TKS.COEFF:
+            self.error(ERR.PARS_ERRORS['COEFF'][0])
+        self.colon_check(op)
+        coeff_dict={}
+        while self.lexer.ch != ';':
+            k = self.check_varname()
+            self.check_equ()
+            v = self.check_num()
+            coeff_dict[k] = v
+            if self.lexer.ch == ',':
+                self.lexer.next_token()
+            else: break
+
+        self.eol_chek()
+        self.node.add_too_tree('Coeff', coeff_dict)
 
     def parse_step(self):
         self.lexer.next_token()
+        op = self.lexer.value
         token = self.lexer.sym
-        if token != Lexer.STEP:
-            self.error('Пропущен оператор определения шага "Step", в позиции ')
-        self.colon_check()
+        if token != TKS.STEP:
+            self.error(ERR.PARS_ERRORS['STEP'][0])
+        self.colon_check(op)
         self.lexer.next_token()
-        self.node.add_too_tree('Step', self.lexer.value)
+        step_value = self.lexer.value
+
+        self.eol_chek()
+        self.node.add_too_tree('Step', step_value)
+
+    def pars_range(self):
+        """
+        Parsing Range statment, look like [ NUM , NUM]
+         or <ИНТЕРВАЛ> ::= "Range:" "[" <ЧИСЛ> "," <ЧИСЛ> "]" ";" in EBNF form
+        :return: Finally make add_too_tree method
+        """
+        self.lexer.next_token()
+        op = self.lexer.value
+        token = self.lexer.sym
+        if token != TKS.RANGE:
+            self.error(ERR.PARS_ERRORS['RANGE'][0])
+        self.colon_check(op)
+        self.lexer.next_token()
+        if self.lexer.sym != TKS.LSB:
+            self.error(ERR.PARS_ERRORS['RANGE'][1]
+                       .format(self.lexer.value))
+        else:
+            range_value = self.lexer.value
+            while self.lexer.sym != TKS.RSB:
+                if self.lexer.sym == TKS.SEMICOLON:
+                    self.error(ERR.PARS_ERRORS['RANGE'][2].format(self.lexer.value))
+                elif self.lexer.sym == TKS.NUM or self.lexer.value in '[,]':
+                    self.lexer.next_token()
+                else:
+                    self.error(ERR.PARS_ERRORS['RANGE'][3].format(self.lexer.value))
+
+                range_value += self.lexer.value
+                for l in '[,]':
+                    if range_value.count(l) > 1: self.error(ERR.PARS_ERRORS['RANGE'][4].format(l))
+        self.node.add_too_tree('Range', range_value)  # Add too tree
         self.eol_chek()
 
+    def pars_method(self):
+        """
+        Parsing Method statement, look like Method: MEthodName
+         or <МЕТОД> = "Method:" "Euler"|"RungeKutta2"!|"RungeKutta4" ";" in EBNF form
+        :return: Finally make add_too_tree method
+        """
+        self.lexer.next_token()
+        op = self.lexer.value
+        if self.lexer.sym != TKS.METHOD:
+            self.error(ERR.PARS_ERRORS['METHOD'][0])
+        self.colon_check(op)
+        self.lexer.next_token()
+        token = self.lexer.value
+        if self.lexer.value not in TKS.METHODS:
+            self.error(ERR.PARS_ERRORS['METHOD'][1].format(self.lexer.value))
+        method_value = self.lexer.value
+        self.eol_chek()
+        self.node.add_too_tree('Method', method_value)
+
     def statement(self):
-        # token = self.lexer.sym
-        if self.lexer.sym != Lexer.BEGIN:
+        if self.lexer.sym != TKS.BEGIN:
             self.error('Программа должна начинаться с оператора Begin:, а пришло {}'
                        .format(self.lexer.value))
         self.eol_chek()
 
+        self.parse_vars0()
+        self.parse_coeff()
         self.parse_step()
+        self.pars_range()
+        self.pars_method()
 
         self.lexer.next_token()
-        if self.lexer.sym != Lexer.END:
+        if self.lexer.sym != TKS.END:
             self.error('Программа должна заканчиваться оператором End, а пришло {}'
                        .format(self.lexer.value))
+
+        # TODO: Bug HERE, when NO semicolon
         self.eol_chek()
 
     def parse(self):
@@ -149,7 +287,7 @@ class Parser:
         self.statement()
 
         self.lexer.next_token()
-        if (self.lexer.sym != Lexer.EOF):
+        if (self.lexer.sym != TKS.EOF):
             self.error('Неправильный синтаксис выражения')
         else:
             print('OK')

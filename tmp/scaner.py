@@ -20,6 +20,14 @@
 #             #return
 #
 # print(NUM)
+l = """
+Begin;
+Step: 0.05
+Range: [0.,2.0878];
+Method:;
+End;
+"""
 
-
-def sysstdin(str):
+print(l)
+print(len(l))
+print(l.replace('\n', ""))

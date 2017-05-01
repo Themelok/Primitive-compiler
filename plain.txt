@@ -1,11 +1,10 @@
-Bvcbegin
+Start
 Exp:
 dx = b*y - a * x*c,
 dy = x + y+z,
 dz=b*z-a*y;
-Vars0 y = 1, x = 1, z=0.5;
+Vars0: y = 1, x = 1, z=0.5;
 Coeff: a = 5,b=3,c=5;
-Step: [0,0.05];
+Step: 0.05;
 Range: 2.0;
-Method: euler
-End
+Stop
