@@ -1,0 +1,8 @@
+Begin;
+Expr: dx=(-u*x)+f, dy=u*x+ga-ba*y;
+Vars0: x=15, y=16;
+Coeff: f=0.01, ga=0.02, u=0.06, ba=0.07;
+Step: 0.1;
+Range: [0.,80];
+Method: Euler;
+End;

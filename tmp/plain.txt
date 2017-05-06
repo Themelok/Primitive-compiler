@@ -1,0 +1,50 @@
+Start
+Exp:
+dx = b*y - a * x*c,
+dy = x + y+z,
+dz=b*z-a*y;
+Vars0: y = 1, x = 1, z=0.5;
+Coeff: a = 5,b=3,c=5;
+Step: 0.05;
+Range: 2.0;
+Stop
+
+Begin;
+Expr: dx =y-a, dy =a *cos(30^2), dz=b*z-a*tg(pi);
+Vars0: y=1, x=1, z=0.5;
+Coeff: a=5,b=3,d=5;
+Step: 0.05;
+Range: [0.,2.];
+Method: Euler;
+End;
+
+
+Мутация клетки
+Begin;
+Expr: dx =a*x*(1-x/e-d*(y/3))+x, dy =b*y*(1-y/m-c*(x/4))+y;
+Vars0: y=145, x=10;
+Coeff: a=0.03, b=0.06, d=0.5, e=5, m=4, c=0.1;
+Step: 0.09;
+Range: [0.,10];
+Method: Euler;
+End;
+
+Затухание светодиода
+Begin;
+Expr: dx=(-b*x)+g, dy=(b*x)+ga-ba*y;
+Vars0: x=15, y=16;
+Coeff: g=0.01, ga=0.02, b=0.06, ba=0.07;
+Step: 0.1;
+Range: [0.,10];
+Method: Euler;
+End;
+
+Растяжение пружины
+Begin;
+Expr: dx=c*x*(1-x/5-b*(y/3))+x, dy=d*y*(1-y/4-a*(x/4))+y;
+Vars0: x=0.3, y=0.5;
+Coeff: a=0.1, b=0.5, c=0.03, d=0.6;
+Step: 0.05;
+Range: [0.,80];
+Method: Euler;
+End;

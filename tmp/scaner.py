@@ -1,33 +1,40 @@
-# raw_stroka = """25.62;"""
-# stroka=raw_stroka.replace(' ','').replace('\n', '').replace('\t', '')
-# NUM = ""
-#
-#
-# for k,v in enumerate(stroka):
-#     if v.isdigit():
-#         NUM += v
-#         if stroka[k+1]=='.':
-#             if not stroka[k+2].isdigit():
-#                 raise Exception('Ожидался числовой символ, а пришел {}'.format(stroka[k+2]))
-#                 #return
-#             else:
-#                 continue
-#     if v == '.':
-#         if stroka[k-1].isdigit() and stroka[k+1].isdigit() and v not in NUM:
-#             NUM += '.'
-#         else:
-#             raise Exception('Неожиданный символ {}'.format(v, k))
-#             #return
-#
-# print(NUM)
-l = """
-Begin;
-Step: 0.05
-Range: [0.,2.0878];
-Method:;
-End;
-"""
+from tkinter import *
 
-print(l)
-print(len(l))
-print(l.replace('\n', ""))
+
+class DpWin(object):
+    def run(self):
+        root=Tk()
+        root.geometry('768x612')
+        title='dp'
+        root.title(title)
+
+        f = Frame(root)
+        f.pack()
+
+        xscrollbar = Scrollbar(f, orient=HORIZONTAL)
+        # xscrollbar.grid(row=1, column=0, sticky=N+S+E+W)
+
+        yscrollbar = Scrollbar(f)
+        yscrollbar.grid(row=0, column=1, sticky=N+S+E+W)
+
+        text = Text(f, wrap=NONE,
+                    xscrollcommand=xscrollbar.set,
+                    yscrollcommand=yscrollbar.set)
+        text.grid(row=0, column=0)
+
+        xscrollbar.config(command=text.xview)
+        yscrollbar.config(command=text.yview)
+        text.insert(END, 'a'*999)
+        mainloop()
+
+    def start(self):
+        self.b_start.config(state=DISABLED)
+        self.b_stop.config(state=ACTIVE)
+
+    def stop(self):
+        self.b_stop.config(state=DISABLED)
+        self.b_start.config(state=ACTIVE)
+
+if __name__=='__main__':
+    win=DpWin()
+    win.run()

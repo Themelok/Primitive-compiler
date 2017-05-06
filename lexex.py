@@ -1,21 +1,45 @@
 import sys
+
+from celery.apps.multi import Node
+
 import TOKENS as TKS
 import ERRORS as ERR
 
+
+class PreLexer:
+    def __init__(self, file):
+        plf = open(file)
+        self.all_lines_arr = [ls.rstrip() for ls in plf]
+        plf.close()
+        self.chek_eols()
+    def error(self, msg):
+        f = open('pre_lex_err.txt','w')
+        print(msg)
+        f.write(msg)
+        f.close()
+        sys.exit(1)
+
+    def chek_eols(self):
+        for k, v in enumerate(self.all_lines_arr):
+            if not v.endswith(';'):
+                self.error(ERR.PRE_LEX_ERRORS[0].format(k+1))
 
 class Lexer:
     """
     Parsing Char by chr and returning tokens
     """
-
-    raw_text_file = open('raw.txt', 'r')
-    ch = ' '
+    def __init__(self, file):
+        self.raw_text_file =  open(file)
+        self.ch = ' '
 
     def error(self, msg):
         char_no = self.raw_text_file.tell()
         print('LEX ERR: ' + msg + str(char_no))
         self.raw_text_file.close()
-
+        f = open('lex_err.txt', 'w')
+        LEX_ERROR = 'LEX ERR: ' + msg + str(char_no)
+        f.write(LEX_ERROR)
+        f.close()
         sys.exit(1)
 
     def lex_comma(self):
@@ -123,14 +147,20 @@ class Parser:
     BEGIN = range(1)
 
     def __init__(self, lexer, node):
-        self.lexer = lexer()
-        self.node = node()
+        self.lexer = lexer
+        self.node = node
         self.parse()
 
     def error(self, msg):
 
         char_no = self.lexer.raw_text_file.tell()
         print('Parser error: ' + msg + "Символ номер " + str(char_no))
+
+        f = open('pars_err.txt', 'w')
+        PARS_ERROR = 'Parser error: ' + msg + "Символ номер " + str(char_no)
+        f.write(PARS_ERROR)
+        f.close()
+
         sys.exit(1)
 
     def eol_chek(self):
@@ -178,8 +208,8 @@ class Parser:
         value = ""
         while self.lexer.sym != TKS.RPAR:
             # self.parse_expression(key)
-            # self.lexer.next_token()
-            value += self.parse_expression(key)
+            self.lexer.next_token()
+            value += self.lexer.value
             if self.lexer.sym == TKS.COMMA or self.lexer.sym == TKS.SEMICOLON:
                 self.error('Пропущенна закрывающая скобка при определении "{}". '.format(key))
         return value
@@ -191,9 +221,17 @@ class Parser:
 
             self.lexer.next_token()
             if self.lexer.sym == TKS.NUM:
-                value += self.lexer.value
+                if self.lexer.ch in TKS.MATHOP or self.lexer.ch in ' ,;)':
+                    value += self.lexer.value
+                else:
+                    self.error(ERR.PARS_ERRORS['Expr'][7].format(self.lexer.ch))
+
             elif self.lexer.sym == TKS.VAR:
-                value += self.lexer.value
+                if self.lexer.ch in TKS.MATHOP or self.lexer.ch in ' ,;)':
+                    value += self.lexer.value
+                else:
+                    self.error(ERR.PARS_ERRORS['Expr'][8].format(self.lexer.ch))
+
             elif self.lexer.sym == TKS.RPAR:
                 value += self.lexer.value
             elif self.lexer.sym == TKS.LPAR:
@@ -205,7 +243,7 @@ class Parser:
                     value += self.lexer.value + self.rpar_chek(key)
             elif self.lexer.value in TKS.MATHOP:
                 if self.lexer.ch in TKS.MATHOP:
-                    self.error('Два знака математических операци подряд')
+                    self.error(ERR.PARS_ERRORS['Expr'][6].format(self.lexer.value,self.lexer.ch, key))
                 else:
                     value += self.lexer.value
             else:
@@ -240,8 +278,10 @@ class Parser:
                 'Ошибка в определении "{}". "(" меньше чем ")" '.format(k))
 
             expr_dict[k] = v
+
             if self.lexer.ch == ',':
                 self.lexer.next_token()
+                # self.lexer.next_token()
             else:
                 break
         self.eol_chek()
@@ -400,6 +440,11 @@ class Parser:
             print('OK')
             # return self.node
 
-
-p = Parser(Lexer, Node)
-print(p.node.node_tree)
+# # #
+# file='raw.txt'
+# pre = PreLexer(file)
+# node=Node()
+# lexer=Lexer(file)
+# p = Parser(lexer, node)
+# FINALNODETREE = p.node.node_tree
+# print(FINALNODETREE)
