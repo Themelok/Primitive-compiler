@@ -59,7 +59,7 @@ class MyUI(Tk):
         print(self.time_arr)
     def magic(self):
         file = 'input.txt'
-        prelexer=PreLexer(file)
+        # prelexer=PreLexer(file)   ### PreLexer ON/OFF
         lexer = Lexer(file)
         node = Node()
         p = Parser(lexer, node)

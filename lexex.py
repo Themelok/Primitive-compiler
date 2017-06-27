@@ -168,7 +168,7 @@ class Parser:
         Chek End Of Line symbol ';'
         :return:
         """
-        self.lexer.next_token()
+        # self.lexer.next_token()
         token = self.lexer.sym
         if token != TKS.SEMICOLON:
             self.error('Пропущен символ конца строки ";", в позиции ')
@@ -217,9 +217,10 @@ class Parser:
     def parse_expression(self, key):
         value = ""
         if self.lexer.ch in TKS.MATHOP: self.error(ERR.PARS_ERRORS['Expr'][2].format(key, self.lexer.ch))
-        while self.lexer.ch not in ',;':
+        while True:
 
             self.lexer.next_token()
+            if self.lexer.sym in (TKS.COMMA, TKS.SEMICOLON) : break
             if self.lexer.sym == TKS.NUM:
                 if self.lexer.ch in TKS.MATHOP or self.lexer.ch in ' ,;)':
                     value += self.lexer.value
@@ -279,8 +280,8 @@ class Parser:
 
             expr_dict[k] = v
 
-            if self.lexer.ch == ',':
-                self.lexer.next_token()
+            if self.lexer.sym == TKS.COMMA:
+                continue
                 # self.lexer.next_token()
             else:
                 break
@@ -309,7 +310,7 @@ class Parser:
                 self.lexer.next_token()
             else:
                 break
-
+        self.lexer.next_token()
         self.eol_chek()
         self.node.add_too_tree('Vars0', vars_dict)
 
@@ -335,7 +336,7 @@ class Parser:
                 self.lexer.next_token()
             else:
                 break
-
+        self.lexer.next_token()
         self.eol_chek()
         self.node.add_too_tree('Coeff', coeff_dict)
 
@@ -353,7 +354,7 @@ class Parser:
         self.colon_check(op)
         self.lexer.next_token()
         step_value = self.lexer.value
-
+        self.lexer.next_token()
         self.eol_chek()
         self.node.add_too_tree('Step', step_value)
 
@@ -387,6 +388,7 @@ class Parser:
                 for l in '[,]':
                     if range_value.count(l) > 1: self.error(ERR.PARS_ERRORS['RANGE'][4].format(l))
         self.node.add_too_tree('Range', range_value)  # Add too tree
+        self.lexer.next_token()
         self.eol_chek()
 
     def pars_method(self):
@@ -405,6 +407,7 @@ class Parser:
         if self.lexer.value not in TKS.METHODS:
             self.error(ERR.PARS_ERRORS['METHOD'][1].format(self.lexer.value))
         method_value = self.lexer.value
+        self.lexer.next_token()
         self.eol_chek()
         self.node.add_too_tree('Method', method_value)
 
@@ -412,6 +415,7 @@ class Parser:
         if self.lexer.sym != TKS.BEGIN:
             self.error('Программа должна начинаться с оператора Begin:, а пришло {}'
                        .format(self.lexer.value))
+        self.lexer.next_token()
         self.eol_chek()
 
         self.parse_expressions()
@@ -426,7 +430,8 @@ class Parser:
             self.error('Программа должна заканчиваться оператором End, а пришло {}'
                        .format(self.lexer.value))
 
-        # TODO: Bug HERE, when NO semicolon
+        # TODO: Bug HERE, when NO
+        self.lexer.next_token()
         self.eol_chek()
 
     def parse(self):

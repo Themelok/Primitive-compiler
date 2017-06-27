@@ -1,8 +1,0 @@
-Begin;
-Expr: dx=a*x*(1-x/e-d*(y/3))+x, dy=b*y*(1-y/m-c*(x/4))+y;
-Vars0: x=10, y=145;
-Coeff: a=0.03, b=0.06, c=0.01, d=0.5, e=5.0, m=4.0;
-Step: 0.09;
-Range: [0.,10];
-Method: Euler;
-End;
