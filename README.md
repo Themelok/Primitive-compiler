@@ -3,6 +3,7 @@ Example of simplest compiler, including lexer and parser. It can be used for pro
 
 Some usage examples
 
+```
 Begin;
 Expr: dx =a*x*(1-x/e-d*(y/3))+x, dy =b*y*(1-y/m-c*(x/4))+y;
 Vars0: x=10, y=145;
@@ -11,8 +12,9 @@ Step: 0.09;
 Range: [0.,4];
 Method: Euler;
 End;
+```
 
-
+```
 Begin;
 Expr: dx=m-u*x, dy=u*x+ga-ba*y+1;
 Vars0: x=15, y=16;
@@ -21,3 +23,4 @@ Step: 0.1;
 Range: [0.,100];
 Method: Euler;
 End;
+```
